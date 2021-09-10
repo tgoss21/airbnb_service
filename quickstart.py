@@ -1,5 +1,7 @@
 from __future__ import print_function
 import datetime
+from datetime import datetime
+from dateutil.relativedelta import relativedelta, MO, SU
 import os.path
 import pprint
 from googleapiclient.discovery import build
@@ -38,7 +40,16 @@ def main():
     MS307_id = 'ggr7r4l0c2aog6t6lfbmotp6b9vg6gi9@import.calendar.google.com'
     NL461_id = 'jorp1cu13a8a9p3s40qimcl61ijfh2tp@import.calendar.google.com'
     HS407_id = 'mkclgiicomv8fg042k3262osmtevi4qk@import.calendar.google.com'
-    now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
+    today = datetime.today()
+    start = today - relativedelta(weekday=MO(-1))
+    end = today - relativedelta(weekday=SU(1))
+    end_date = end.isoformat('T') + "Z"
+    start_date = start.isoformat('T') + "Z"
+    # now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
+    # now = datetime.utcnow().isoformat()  # 'Z' indicates UTC time
+    # dt = datetime.strptime(str(now), '%Y-%m-%dT%H:%M:%S.%f') 
+    # start = dt - timedelta(days=dt.weekday())
+    # end = start + timedelta(days=6)
     calendar_ids = []
     
     # Get all Airbnb calendar id's
@@ -64,8 +75,8 @@ def main():
         while True:
             calendar_list = service.calendarList().list(pageToken=page_token).execute()
             for cal_ids in calendar_ids:
-                events_result = service.events().list(calendarId=cal_ids, maxResults=1,timeMin=now, singleEvents=True, orderBy='startTime').execute()
-
+                events_result = service.events().list(calendarId=cal_ids, timeMin=start_date, timeMax=end_date, singleEvents=True, orderBy='startTime').execute()
+    
                 events = events_result.get('items', [])
                 for event in events:
                     data = cal_ids, event['iCalUID'], event['end'].get('dateTime', event['end'].get('date')), event['start'].get('dateTime', event['start'].get('date'))
@@ -102,7 +113,7 @@ def main():
                         },
                         'iCalUID': vals[1]
                     }
-                    # imported_event = service.events().import_(calendarId='primary', body=event).execute()
+                    imported_event = service.events().import_(calendarId='primary', body=_resource).execute()
                     data_len -= 1
                     pprint.pprint(_resource)
                     print("\n")
