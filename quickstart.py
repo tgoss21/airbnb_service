@@ -2,7 +2,6 @@ from __future__ import print_function
 import datetime
 import os.path
 import pprint
-import queue
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -15,9 +14,6 @@ SCOPES = ['https://www.googleapis.com/auth/calendar.readonly',
 
 
 def main():
-    """Shows basic usage of the Google Calendar API.
-    Prints the start and name of the next 10 events on the user's calendar.
-    """
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -43,11 +39,12 @@ def main():
     NL461_id = 'jorp1cu13a8a9p3s40qimcl61ijfh2tp@import.calendar.google.com'
     HS407_id = 'mkclgiicomv8fg042k3262osmtevi4qk@import.calendar.google.com'
     now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-
+    calendar_ids = []
+    
     # Get all Airbnb calendar id's
     def get_cal_ids():
         page_token = None
-        calendar_ids = []
+        
         while True:
             calendar_list = service.calendarList().list(pageToken=page_token).execute()
             for calendar_list_entry in calendar_list['items']:
@@ -58,43 +55,58 @@ def main():
             if not page_token:
                 break
         return calendar_ids
-
-    print("Calendar Ids:", get_cal_ids())
-
+    
     # Get data for each event
     def get_eventData():
-        for cal_ids in get_cal_ids():
-            events_result = service.events().list(calendarId=cal_ids, maxResults=3,
-                                           timeMin=now, singleEvents=True, orderBy='startTime').execute()
-        events = events_result.get('items', [])
+        page_token = None
         data_lst = []
-        for event in events:
-            data = event['iCalUID'], event['end'].get('dateTime', event['end'].get(
-                'date')), event['start'].get('dateTime', event['start'].get('date'))
-            data_lst.append(data)
-        return data_lst
+        calendar_ids = get_cal_ids()
+        while True:
+            calendar_list = service.calendarList().list(pageToken=page_token).execute()
+            for cal_ids in calendar_ids:
+                events_result = service.events().list(calendarId=cal_ids, maxResults=3,timeMin=now, singleEvents=True, orderBy='startTime').execute()
 
+                events = events_result.get('items', [])
+                
+                for event in events:
+                    data = cal_ids, event['iCalUID'], event['end'].get('dateTime', event['end'].get('date')), event['start'].get('dateTime', event['start'].get('date'))
+                    data_lst.append(data)
+            return data_lst
 
     # Imports private copy of event
     def import_event():
-        values = get_eventData()
+        event_values = get_eventData()
+        data_len = len(event_values)
+        summary = ''
+        print(event_values[0])
+        for vals in event_values:
+            for _ids in calendar_ids:
+                if _ids == calendar_ids[0]:
+                    summary = 'FP308'
+                elif _ids == calendar_ids[1]:
+                    summary = 'MS307'
+                elif _ids == calendar_ids[2]:
+                    summary = 'NL461'
+                elif _ids == calendar_ids[3]:
+                    summary = 'HS407'
+                else:
+                    'No data!'
 
-        data = []
-        for value in values:
-            event = {
-                'summary': 'FP308',
-                'start': {
-                    'date': value[2]
-                },
-                'end': {
-                    'date': value[1]
-                },
-                'iCalUID': value[0]
-            }
-            imported_event = service.events().import_(calendarId='primary', body=event).execute()
-            pprint.pprint(event)
+                _resource = {
+                    'summary': f'{summary}',
+                    'start': {
+                        'date': vals[3]
+                    },
+                    'end': {
+                        'date': vals[2]
+                    },
+                    'iCalUID': vals[1]
+                }
+                # imported_event = service.events().import_(calendarId='primary', body=event).execute()
+                data_len -= 1
+                pprint.pprint(_resource)
         
-    # print(import_event())
+    print(import_event())
     print('---------------------------------------------------------')
 
     
