@@ -67,7 +67,6 @@ def main():
                 events_result = service.events().list(calendarId=cal_ids, maxResults=3,timeMin=now, singleEvents=True, orderBy='startTime').execute()
 
                 events = events_result.get('items', [])
-                
                 for event in events:
                     data = cal_ids, event['iCalUID'], event['end'].get('dateTime', event['end'].get('date')), event['start'].get('dateTime', event['start'].get('date'))
                     data_lst.append(data)
@@ -78,7 +77,6 @@ def main():
         event_values = get_eventData()
         data_len = len(event_values)
         summary = ''
-        print(event_values[0])
         for vals in event_values:
             for _ids in calendar_ids:
                 if _ids == calendar_ids[0]:
