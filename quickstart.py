@@ -64,7 +64,7 @@ def main():
         while True:
             calendar_list = service.calendarList().list(pageToken=page_token).execute()
             for cal_ids in calendar_ids:
-                events_result = service.events().list(calendarId=cal_ids, maxResults=3,timeMin=now, singleEvents=True, orderBy='startTime').execute()
+                events_result = service.events().list(calendarId=cal_ids, maxResults=1,timeMin=now, singleEvents=True, orderBy='startTime').execute()
 
                 events = events_result.get('items', [])
                 for event in events:
@@ -77,6 +77,7 @@ def main():
         event_values = get_eventData()
         data_len = len(event_values)
         summary = ''
+        
         for vals in event_values:
             for _ids in calendar_ids:
                 if _ids == calendar_ids[0]:
@@ -86,25 +87,27 @@ def main():
                 elif _ids == calendar_ids[2]:
                     summary = 'NL461'
                 elif _ids == calendar_ids[3]:
-                    summary = 'HS407'
+                   summary = 'HS407'
                 else:
                     'No data!'
 
-                _resource = {
-                    'summary': f'{summary}',
-                    'start': {
-                        'date': vals[3]
-                    },
-                    'end': {
-                        'date': vals[2]
-                    },
-                    'iCalUID': vals[1]
-                }
-                # imported_event = service.events().import_(calendarId='primary', body=event).execute()
-                data_len -= 1
-                pprint.pprint(_resource)
+                if data_len > 0:
+                    _resource = {
+                        'summary': f'{summary}',
+                        'start': {
+                            'date': vals[3]
+                        },
+                        'end': {
+                            'date': vals[2]
+                        },
+                        'iCalUID': vals[1]
+                    }
+                    # imported_event = service.events().import_(calendarId='primary', body=event).execute()
+                    data_len -= 1
+                    pprint.pprint(_resource)
+                    print("\n")
         
-    print(import_event())
+    pprint.pprint(import_event())
     print('---------------------------------------------------------')
 
     
