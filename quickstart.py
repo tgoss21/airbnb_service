@@ -45,12 +45,9 @@ def main():
     end = today - relativedelta(weekday=SU(1))
     end_date = end.isoformat('T') + "Z"
     start_date = start.isoformat('T') + "Z"
-    # now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-    # now = datetime.utcnow().isoformat()  # 'Z' indicates UTC time
-    # dt = datetime.strptime(str(now), '%Y-%m-%dT%H:%M:%S.%f') 
-    # start = dt - timedelta(days=dt.weekday())
-    # end = start + timedelta(days=6)
     calendar_ids = []
+    personal_cal_ids = []
+    cal_summary = []
     
     # Get all Airbnb calendar id's
     def get_cal_ids():
@@ -61,20 +58,29 @@ def main():
             for calendar_list_entry in calendar_list['items']:
                 cals = calendar_list_entry['id']
                 if "import.calendar" in cals:
+                    print('SUMMARY----->:', calendar_list_entry['summaryOverride'], 'BNB_CALS:', cals)
                     calendar_ids.append(cals)
+                elif 'group.calendar' in cals:
+                    print('SUMMARY----->:', calendar_list_entry['summary'], 'PER_CALS:', cals)
+                    cal_summary.append(calendar_list_entry['summary'])
+                    personal_cal_ids.append(cals)
             page_token = calendar_list.get('nextPageToken')
             if not page_token:
                 break
-        return calendar_ids
+        return calendar_ids, personal_cal_ids
+    
+    #initalize personal and airbnb calendar lists
+    get_cal_ids()
+
     
     # Get data for each event
     def get_eventData():
         page_token = None
         data_lst = []
-        calendar_ids = get_cal_ids()
+        cal_id = calendar_ids
         while True:
             calendar_list = service.calendarList().list(pageToken=page_token).execute()
-            for cal_ids in calendar_ids:
+            for cal_ids in cal_id:
                 events_result = service.events().list(calendarId=cal_ids, timeMin=start_date, timeMax=end_date, singleEvents=True, orderBy='startTime').execute()
     
                 events = events_result.get('items', [])
@@ -82,41 +88,49 @@ def main():
                     data = cal_ids, event['iCalUID'], event['end'].get('dateTime', event['end'].get('date')), event['start'].get('dateTime', event['start'].get('date'))
                     data_lst.append(data)
             return data_lst
-
+        
+    def import_data(summary, start, end, iCalUID):
+        _resource = {
+                        'summary': summary,
+                        'start': {
+                            'date': start
+                        },
+                        'end': {
+                            'date': end
+                        },
+                        'iCalUID': iCalUID
+                    }
+        return _resource
+    
+    
     # Imports private copy of event
     def import_event():
         event_values = get_eventData()
-        data_len = len(event_values)
-        summary = ''
         
         for vals in event_values:
-            for _ids in calendar_ids:
-                if _ids == calendar_ids[0]:
-                    summary = 'FP308'
-                elif _ids == calendar_ids[1]:
-                    summary = 'MS307'
-                elif _ids == calendar_ids[2]:
-                    summary = 'NL461'
-                elif _ids == calendar_ids[3]:
-                   summary = 'HS407'
-                else:
-                    'No data!'
-
-                if data_len > 0:
-                    _resource = {
-                        'summary': f'{summary}',
-                        'start': {
-                            'date': vals[3]
-                        },
-                        'end': {
-                            'date': vals[2]
-                        },
-                        'iCalUID': vals[1]
-                    }
-                    imported_event = service.events().import_(calendarId='primary', body=_resource).execute()
-                    data_len -= 1
-                    pprint.pprint(_resource)
-                    print("\n")
+            if vals[0] == calendar_ids[0]:
+                FP308_resource = import_data(cal_summary[1], vals[3], vals[2], vals[1])
+                # imported_event = service.events().import_(calendarId=personal_cal_ids[1], body=FP308_resource).execute()
+                print('FP308:', personal_cal_ids[1])
+                print(FP308_resource)
+            elif vals[0] == calendar_ids[1]:
+                MS307_resource = import_data(cal_summary[0], vals[3], vals[2], vals[1])
+                # imported_event = service.events().import_(calendarId=personal_cal_ids[0], body=MS307_resource).execute()
+                print('MS308:', personal_cal_ids[0])
+                print(MS307_resource)
+            elif vals[0] == calendar_ids[2]:
+                NL461_resource = import_data(cal_summary[3], vals[3], vals[2], vals[1])
+                # imported_event = service.events().import_(calendarId=personal_cal_ids[3], body=NL461_resource).execute()
+                print('NL461:', personal_cal_ids[3])
+                print(NL461_resource)
+            elif vals[0] == calendar_ids[3]:
+                HS407_resource = import_data(cal_summary[2], vals[3], vals[2], vals[1])
+                # imported_event = service.events().import_(calendarId=personal_cal_ids[2], body=HS407_resource).execute()
+                print('HS407:', personal_cal_ids[2])
+                print(HS407_resource)
+            else:
+                'No data!'
+                
         
     pprint.pprint(import_event())
     print('---------------------------------------------------------')
