@@ -31,7 +31,6 @@ class karl2(Frame):
         self.destroy()
 
 def main(): 
-    #karl().mainloop()
     pass
     
 if __name__ == '__main__':
